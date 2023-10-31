@@ -251,7 +251,7 @@ class trainNTest():
         partialState = {k: v for k, v in DPstate.items() if k in cnnDict}
         cnnDict.update(partialState)
         return cnnDict
-# In[Wrapper Function]:   
+#%% Wrapper Function:   
 def Train(deviceN,
           gLoc,
           lr,

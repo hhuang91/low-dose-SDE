@@ -82,19 +82,6 @@ class hdf5DataSet(torch.utils.data.Dataset):
             # step 3: sample training data
             x_t, alpha, t = self.SDE.sampleTrainingData(x_neg1, T)
             return x_neg1, x_t, alpha, t
-            # # step 1: get clean projection
-            # prjDS = f[self.datKind+'Prj']
-            # x_neg1 = prjDS[idx,:,:].squeeze()
-            # # step 2: sample a random T as prior and t0 resevse steps for training 
-            # # to ease the training, we assume that x_T always has the lowest dose
-            # step = self.SDE.N - 1#torch.randint(1, self.SDE.N, (1,))
-            # revStep = torch.randint(0, step+1, (1,))
-            # T = self.SDE.discrete_t[step]
-            # t0 = self.SDE.discrete_t[revStep]
-            # # step 3: Sample Prior and get GT score
-            # x_t, noise = self.SDE.sampleXt(x_neg1, T)
-            # x_T, x_t, t, score, alpha, alphaT = self.SDE.sampleTrainingData(x_t, T, x_neg1, t0)
-            # return x_neg1, x_T, x_t, score, t, alpha, alphaT
     def __len__(self):
         with h5py.File(self.datPath,'r') as f:
             tmpDS= f[self.datKind+'Prj']

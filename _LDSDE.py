@@ -93,11 +93,6 @@ class LDSDE():
         x_t = alpha * x_neg1 + noise
         return x_t, alpha, t
     
-    # @tensorIn_TensorOut
-    # def score2Xneg1(self,x_t,score,alpha):
-    #     nom = (x_t + score*self.sigma_e**2)
-    #     den = alpha*(1 - score/self.I_0)
-    #     return torch.clamp(nom/den,0,1)
     @tensorIn_TensorOut
     def noiseEst2Xneg1(self, x_t ,noiseEst, alpha, x_T_Norm):
         """Notice that the input noise, noiseEst, already is negative of original noise (see getNoiseGT)"""
@@ -122,12 +117,6 @@ class LDSDE():
     """
     note that noise is simply score*sigma
     """
-    # @tensorIn_TensorOut
-    # def getScoreGT(self,x_neg1,x_t,alpha):
-    #     sigma_q = self.getSigmaQ(x_neg1)
-    #     sigma = self.getSigma(sigma_q, alpha)
-    #     score = -(x_t - alpha*x_neg1)/(sigma**2)
-    #     return score
     @tensorIn_TensorOut
     def getNoiseGT(self,x_neg1,x_t,alpha):
         sigma_q = self.getSigmaQ(x_neg1)
@@ -160,60 +149,3 @@ class LDSDE():
         score = noiseEst/sigma
         dx = (F - G**2*score)*self.rev_dt + G*dw
         return dx
-    
-    
-    # @tensorIn_TensorOut
-    # def getScoreGT_usingXT(self,x_T,x_t,alpha):
-    #     x_neg1 = x_T
-    #     sigma_q = self.getSigmaQ(x_neg1)
-    #     sigma = self.getSigma(sigma_q, alpha)
-    #     score = -(x_t - alpha*x_neg1)/(sigma**2)
-    #     return score
-    
-    # @tensorIn_TensorOut
-    # def getReverseSDE_dx(self, x_t, T, score):
-    #     t, alpha, D = self.discretizedValues_at_T(T)
-    #     x_neg1_est = self.score2Xneg1(x_t, score,alpha)
-    #     sigma_q_est = self.getSigmaQ(x_neg1_est)
-    #     G = self.getG(sigma_q_est,D)
-    #     F = self.getF(x_t,D)
-    #     dw = torch.sqrt(self.dt)*torch.randn_like(x_t)
-    #     dx = (F - G**2*score)*self.rev_dt + G*dw
-    #     return dx
-    
-    # @tensorIn_TensorOut
-    # def getReverseSDE_dx_with_Xneg1(self, x_t, T, x_neg1, score):
-    #     t, alpha, D = self.discretizedValues_at_T(T)
-    #     x_neg1_est = x_neg1
-    #     sigma_q_est = self.getSigmaQ(x_neg1_est)
-    #     G = self.getG(sigma_q_est,D)
-    #     F = self.getF(x_t,D)
-    #     dw = torch.sqrt(self.dt)*torch.randn_like(x_t)
-    #     dx = (F - G**2*score)*self.rev_dt + G*dw
-    #     return dx
-    
-    # @tensorIn_TensorOut
-    # def getReverseSDE_dx_with_noiseEst(self, x_t, t, x_T, noiseEst):
-    #     t, alpha, D = self.discretizedValues_at_T(t)
-    #     x_neg1_est = x_T/alpha
-    #     sigma_q_est = self.getSigmaQ(x_neg1_est)
-    #     G = self.getG(sigma_q_est,D)
-    #     F = self.getF(x_t,D)
-    #     dw = torch.sqrt(self.dt)*torch.randn_like(x_t)
-    #     sigma = self.getSigma(sigma_q_est, alpha)
-    #     score = noiseEst/sigma
-    #     dx = (F - G**2*score)*self.rev_dt + G*dw
-    #     return dx
-
-    # x_T = x_t.clone()
-    # t, alphaT, D = self.discretizedValues_at_T(T)
-    # t_target,_,_= self.discretizedValues_at_T(T-t0)
-    # while t > t_target:
-    #     t , alpha, D = self.discretizedValues_at_T(t)
-    #     score = self.getScoreGT(x_neg1,x_t,alpha)
-    #     dx = self.getReverseSDE_dx(x_t, t, score)
-    #     x_t = x_t + dx
-    #     t = t + self.rev_dt
-    # t , alpha, D = self.discretizedValues_at_T(t)
-    # score = self.getScoreGT(x_neg1,x_t,alpha)
-    # return x_T, x_t, t, score, alpha, alphaT

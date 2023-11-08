@@ -6,6 +6,7 @@ Distributed Data Parallel warpper for training the network
 """
 
 from __future__ import print_function
+from typing import List, Optional, Sequence, Tuple, Union
 import torch
 import torch.optim as optim
 import scipy
@@ -14,17 +15,17 @@ from _structs import gStruct
 from _network import XDNR
 from _trainNetwork import trainNTest
 
-def Train(  args,
-            deviceN,
-            gLoc,
-            lr,
-            wMSE,wFbpMSE,
-            continueTrain=False,xferLearn=False,
-            prjSize=[1024,360],recDim=512,recVoxSize = 0.25,
-            EPOCHS=500,batchSize=8,
-            dataPath='./Data',outDir = './networkOutput/',
-            numWorker=0,
-            dispOn=False):
+def Train(  args:dict,
+            deviceN:str,
+            gLoc:str,
+            lr:float,
+            wMSE:float, wFbpMSE:float,
+            continueTrain:bool = False, xferLearn:bool = False,
+            prjSize:List[int] = [1024,360],recDim:int = 512,recVoxSize:float = 0.25,
+            EPOCHS:int = 500,batchSize:int = 8,
+            dataPath:str = './Data',outDir:str = './networkOutput/',
+            numWorker:int = 0,
+            dispOn:bool = False):
     # setup DDP env
     torch.cuda.set_device(args.local_rank)
     world_size = args.ngpu
@@ -62,5 +63,5 @@ def Train(  args,
                         dataLoader,outDir,
                         dispOn,
                         rank = args.local_rank)
-    # TRAIN!!!!!
+    # TRAIN
     tNt.train()

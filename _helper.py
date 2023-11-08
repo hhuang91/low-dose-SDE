@@ -1,56 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Mar 16 10:57:33 2022
+Create slice viewer for 3D volume
+Use mouse wheel for scrolling through slices
 
 @author: hhuang91
 """
 
 import matplotlib.pyplot as plt
+import numpy 
 
-# class IndexTracker:
-#     def __init__(self, ax, X):
-#         self.ax = ax
-#         ax.set_title('use scroll wheel to navigate images')
-
-#         self.X = X
-#         rows, cols, self.slices = X.shape
-#         self.ind = self.slices//2
-
-#         self.im = ax.imshow(self.X[:, :, self.ind],cmap='gray')
-#         # self.update()
-
-#     def on_scroll(self, event):
-#         print("%s %s" % (event.button, event.step))
-#         if event.button == 'up':
-#             self.ind = (self.ind + 1) % self.slices
-#         else:
-#             self.ind = (self.ind - 1) % self.slices
-#         self.update()
     
-#     def keyPress(self, event):
-#         if event.key == 'z':
-#             self.ind = (self.ind + 1) % self.slices
-#         elif event.key == 'x':
-#             self.ind = (self.ind - 1) % self.slices
-#         self.update(event)
-        
-#     def update(self,event):
-#         fig = event.canvas.figure
-#         ax = fig.axes[0]
-#         ax.images[0].set_array(self.X[self.ind])
-#         fig.canvas.draw()
-#         # self.im.set_data(self.X[:, :, self.ind])
-#         # self.ax.set_ylabel('slice %s' % self.ind)
-#         # self.im.axes.figure.canvas.draw()
-
-# def sliceViewer(X):
-#     fig, ax = plt.subplots(1, 1)
-#     tracker = IndexTracker(ax, X)
-#     fig.canvas.mpl_connect('scroll_event', tracker.on_scroll)
-#     fig.canvas.mpl_connect('key_press_event', tracker.keyPress)
-#     plt.show()
-    
-def sliceView(volume):
+def sliceView(volume:numpy.ndarray):
     fig, ax = plt.subplots()
     ax.volume = volume
     ax.index = volume.shape[0] // 2

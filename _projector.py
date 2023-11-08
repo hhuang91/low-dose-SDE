@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug  1 15:56:27 2023
+Wrapper function for creating a differentiable radon fan beam projector
+based on torch-radon [https://github.com/matteo-ronchetti/torch-radon]
 
 @author: hhuang91
 """
@@ -8,7 +9,7 @@ import numpy as np
 from torch_radon import RadonFanbeam
 from _structs import gStruct
 
-def getRFP(g,imSize = 256, imRes = 1.):
+def getRFP(g:gStruct,imSize:int = 256, imRes:float = 1.) -> RadonFanbeam:
     scaFact = 1./imRes
     if isinstance(g, gStruct):
         angles = g.angle * np.pi / 180

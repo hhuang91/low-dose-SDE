@@ -2,13 +2,15 @@
 """
 Created on Mon Sep  4 16:48:58 2023
 
+Wrapper and training class the LDSDE network
+
 @author: hhuang91
 
-Training the LDSDE network
 """
-# In[Import]:
+#%% Import
 
 from __future__ import print_function
+from typing import List, Optional, Sequence, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -23,19 +25,105 @@ from _network import XDNR
 from _structs import gStruct
 from _LDSDE import LDSDE
 import random
-# In[Train DLVIF patch]:
+
+#%% Wrapper Function:   
+def Train(deviceN:str,
+          gLoc:str,
+          lr:float,
+          wMSE:float, wFbpMSE:float,
+          continueTrain:bool = False,xferLearn:bool = False,
+          prjSize:List[int] = [1024,360],recDim:int = 512,recVoxSize:float = 0.25,
+          EPOCHS:int = 500,batchSize:int = 8,
+          dataPath:str = './Data',outDir:str = './networkOutput/',
+          numWorker:int = 0,
+          dispOn:bool = False):
+    # set device
+    device = torch.device(deviceN)
+    if device.type =='cuda' and device.index == None:
+        cnn = nn.DataParallel(XDNR().to(device));
+    else:
+        cnn = XDNR().to(device)
+    # get geometry
+    tmp = scipy.io.loadmat(gLoc)
+    gRaw = tmp['g']
+    g = gStruct()
+    g.setFromSioLoaded(gRaw)
+    # set optimizer
+    optimizer = optim.Adam(cnn.parameters(), lr=lr)
+    # set dataloader
+    dataLoader = hdf5Loader(dataPath, batchSize, device.type =='cuda',numWorker)
+    # construct training class
+    tNt = trainNTest(
+                        device,
+                        g,
+                        cnn,
+                        optimizer,wMSE,wFbpMSE,
+                        continueTrain,xferLearn,
+                        prjSize,recDim,recVoxSize,
+                        EPOCHS,
+                        dataLoader,outDir,
+                        dispOn
+                        )
+    # TRAIN!!!!
+    tNt.train()
+    
+def Test(deviceN:str,
+          gLoc:str,
+          lr:float,
+          wMSE:float, wFbpMSE:float,
+          testAtEpoch: int,
+          rndSeed:int = 0,
+          continueTrain:bool = False,xferLearn:bool = False,
+          prjSize:List[int] = [1024,360],recDim:int = 512,recVoxSize:float = 0.25,
+          EPOCHS:int = 500,batchSize:int = 8,
+          dataPath:str = './Data',outDir:str = './networkOutput/',
+          numWorker:int = 0,
+          dispOn:int = False):
+    # set device
+    device = torch.device(deviceN)
+    if device.type =='cuda' and device.index == None:
+        cnn = nn.DataParallel(XDNR().to(device));
+    else:
+        cnn = XDNR().to(device)
+    # get geometry
+    tmp = scipy.io.loadmat(gLoc)
+    gRaw = tmp['g']
+    g = gStruct()
+    g.setFromSioLoaded(gRaw)
+    # set optimizer
+    optimizer = optim.Adam(cnn.parameters(), lr=lr)
+    # set dataloader
+    dataLoader = hdf5Loader(dataPath, batchSize, device.type =='cuda',numWorker)
+    # construct training class
+    tNt = trainNTest(
+                        device,
+                        g,
+                        cnn,
+                        optimizer,wMSE,wFbpMSE,
+                        continueTrain,xferLearn,
+                        prjSize,recDim,recVoxSize,
+                        EPOCHS,
+                        dataLoader,outDir,
+                        dispOn
+                        )
+    # Test!!!!
+    tNt.test(testAtEpoch,rndSeed)
+
+#%% Training and testing class
 class trainNTest():
     def __init__(self,
-                 device,
-                 g,
-                 cnn,
-                 optimizer,wMSE,wFbpMSE,
-                 continueTrain,xferLearn,
-                 prjSize,recDim,recVoxSize,
-                 EPOCHS,
-                 dataLoader,outDir,
-                 dispOn=False,
-                 rank = 0):
+                 device:str,
+                 g:gStruct,
+                 cnn:torch.nn.modules,
+                 optimizer:torch.optim,
+                 wMSE:float, wFbpMSE:float,
+                 continueTrain:bool ,xferLearn:bool,
+                 prjSize:List[int], recDim:int ,recVoxSize:float,
+                 EPOCHS:int,
+                 dataLoader:hdf5Loader,
+                 outDir:str,
+                 dispOn:bool =False,
+                 rank:int = 0):
         self.rank = rank
         self.g = g
         self.lossFncMSE = torch.nn.MSELoss()
@@ -90,6 +178,7 @@ class trainNTest():
                 print(f"State loaded:{stateFN}")
             else:
                 raise Exception("State file missing!")
+                
     def train(self):
         print("Begin Training")
         print(f"Start from {self.startEpoch} Epoch")
@@ -118,6 +207,7 @@ class trainNTest():
                           'optimizerState' : self.optimizer.state_dict()}
                 stateFN = self.stateN+str(epoch)+".pth.tar";
                 self.saveState(state,stateFN)
+                
     @torch.no_grad()
     def valdn(self,valdnAtEpoch = -1):
         if valdnAtEpoch >= 0:
@@ -136,6 +226,7 @@ class trainNTest():
             valdnLoss += loss
         valdnLoss /= len(self.valdnLoader)
         return valdnLoss
+    
     @torch.no_grad()
     def test(self,testAtEpoch = -1,rndSeed = 0):
         testLoss = 0
@@ -159,6 +250,7 @@ class trainNTest():
         testResults = {'testLoss':testLoss}
         saveFN = self.outDir+'/'+"test_lr_"+str(self.lr)+'_Epoch_'+str(testAtEpoch)
         scipy.io.savemat(saveFN+'.mat', testResults)
+        
     def reverseLoop(self,data,pBar,train = False):
         revAllStepLoss = 0.
         revAllStepMSEloss = 0.
@@ -191,12 +283,14 @@ class trainNTest():
         if self.dispOn:
             self.plot(x_t,noise_est,noise)
         return revAllStepLoss/1000, revAllStepFBPloss/1000, revAllStepMSEloss/1000
+    
     def getLoss(self,x_neg1, x_t, alpha, noise, noise_est):
         mseLoss = self.lossFncMSE( noise_est,  noise )*self.wMSE
         x_neg1_est = self.SDE.noiseEst2Xneg1(x_t ,noise_est, alpha, x_neg1) #if self.wFbpMSE > 0 else 0.
         fbpLoss = self.lossFncFbpMSE(x_neg1,x_neg1_est)*self.wFbpMSE
         loss = (mseLoss + fbpLoss)
         return loss, fbpLoss, mseLoss
+    
     @torch.no_grad()
     def plot(self,x_t,noise_est,noise):
         plt.figure()
@@ -207,22 +301,26 @@ class trainNTest():
         plt.subplot(3,1,3)
         plt.imshow((noise[0,0,:,:]).detach().cpu().numpy(),cmap='gray');plt.colorbar()
         plt.show()
+        
     def reshapeImg(self,data:tuple):
         res = [x.to(self.device).view(-1,1,*x.shape[-2:]).float() for x in data]
         if len(data) > 1 :
             return tuple(res)
         else:
             return tuple(res)[0]
+        
     def reshapeSca(self,data:tuple):
         res = [x.to(self.device).view(-1,1,1,1).float() for x in data]
         if len(data) > 1 :
             return tuple(res)
         else:
             return tuple(res)[0]
+        
     def saveState(self,state,stateFN,disp=True):
         torch.save(state,stateFN)
         if disp:
             print('-->current training state saved')
+            
     def loadState(self,stateFN,ldOptm = True,partialLoad = False):
         state = torch.load(stateFN,self.device)
         cnnState = state['cnnState']
@@ -239,6 +337,7 @@ class trainNTest():
         if ldOptm:
             self.optimizer.load_state_dict(state['optimizerState'])
             print('loaded optimizer state')
+            
     def stateDictConvert(self,DPstate):
         from collections import OrderedDict
         State = OrderedDict()
@@ -246,90 +345,9 @@ class trainNTest():
             name = k.replace("module.", "") # remove 'module.' of dataparallel
             State[name] = v
         return State
+    
     def partialStateConvert(self,DPstate):
         cnnDict = self.cnn.state_dict()
         partialState = {k: v for k, v in DPstate.items() if k in cnnDict}
         cnnDict.update(partialState)
         return cnnDict
-#%% Wrapper Function:   
-def Train(deviceN,
-          gLoc,
-          lr,
-          wMSE,wFbpMSE,
-          continueTrain=False,xferLearn=False,
-          prjSize=[1024,360],recDim=512,recVoxSize = 0.25,
-          EPOCHS=500,batchSize=8,
-          dataPath='./Data',outDir = './networkOutput/',
-          numWorker=0,
-          dispOn=False):
-    # set device
-    device = torch.device(deviceN)
-    if device.type =='cuda' and device.index == None:
-        cnn = nn.DataParallel(XDNR().to(device));
-    else:
-        cnn = XDNR().to(device)
-    # get geometry
-    tmp = scipy.io.loadmat(gLoc)
-    gRaw = tmp['g']
-    g = gStruct()
-    g.setFromSioLoaded(gRaw)
-    # set optimizer
-    optimizer = optim.Adam(cnn.parameters(), lr=lr)
-    # set dataloader
-    dataLoader = hdf5Loader(dataPath, batchSize, device.type =='cuda',numWorker)
-    # construct training class
-    tNt = trainNTest(
-                        device,
-                        g,
-                        cnn,
-                        optimizer,wMSE,wFbpMSE,
-                        continueTrain,xferLearn,
-                        prjSize,recDim,recVoxSize,
-                        EPOCHS,
-                        dataLoader,outDir,
-                        dispOn
-                        )
-    # TRAIN!!!!
-    tNt.train()
-    
-def Test(deviceN,
-          gLoc,
-          lr,wMSE,wFbpMSE,
-          testAtEpoch,
-          rndSeed = 0,
-          continueTrain=False,xferLearn=False,
-          prjSize=[1024,360],recDim=512,recVoxSize = 0.25,
-          EPOCHS=500,batchSize=8,
-          dataPath='./Data',outDir = './networkOutput/',
-          numWorker=0,
-          dispOn=False):
-    # set device
-    device = torch.device(deviceN)
-    if device.type =='cuda' and device.index == None:
-        cnn = nn.DataParallel(XDNR().to(device));
-    else:
-        cnn = XDNR().to(device)
-    # get geometry
-    tmp = scipy.io.loadmat(gLoc)
-    gRaw = tmp['g']
-    g = gStruct()
-    g.setFromSioLoaded(gRaw)
-    # set optimizer
-    optimizer = optim.Adam(cnn.parameters(), lr=lr)
-    # set dataloader
-    dataLoader = hdf5Loader(dataPath, batchSize, device.type =='cuda',numWorker)
-    # construct training class
-    tNt = trainNTest(
-                        device,
-                        g,
-                        cnn,
-                        optimizer,wMSE,wFbpMSE,
-                        continueTrain,xferLearn,
-                        prjSize,recDim,recVoxSize,
-                        EPOCHS,
-                        dataLoader,outDir,
-                        dispOn
-                        )
-    # Test!!!!
-    tNt.test(testAtEpoch,rndSeed)
-

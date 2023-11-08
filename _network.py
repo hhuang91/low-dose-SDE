@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Sep  4 17:10:54 2023
-Cross Domian denoising network
+LDSDE denoising network
 @author: hhuang91
 """
 
@@ -32,7 +32,7 @@ def splitPrj(x):
     x3 = torch.clamp(x,thrsld2,None)
     res = torch.cat((x1,x2,x3),1)
     return res
-#%% cross(X)-Domain Noise Reduction
+#%% cross(X)-Domain [projection<-->reconstruction] Noise Reduction
 class XDNR(nn.Module):
     def __init__(self):
         super().__init__()
@@ -128,7 +128,7 @@ class XDNR(nn.Module):
         return out
 
 #%% helper function for loading the network states
-def loadState(net,stateFN):
+def loadState(net:torch.nn.modules,stateFN:str):
     state = torch.load(stateFN,next(net.parameters()).device)
     cnnState = state['cnnState']
     try:
@@ -138,7 +138,7 @@ def loadState(net,stateFN):
         net.load_state_dict(cnnState)
     print('loaded training state')
 
-def stateDictConvert(DPstate):
+def stateDictConvert(DPstate:dict):
     from collections import OrderedDict
     State = OrderedDict()
     for k, v in DPstate.items():

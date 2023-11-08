@@ -8,14 +8,13 @@ Data loader for LPSDE training
 # %% Import
 import h5py
 import torch
-# import torch.nn as nn
-# import numpy as np
+from typing import List, Optional, Sequence, Tuple, Union
 from _LDSDE import LDSDE
 
 
 # %% Dataloader wrapper
 class hdf5Loader():
-    def __init__(self,datPath,batchSize,useCuda,numWorker=0):
+    def __init__(self, datPath:str, batchSize:int, useCuda:bool, numWorker:int = 0):
         loaderKwagrs = {'batch_size':batchSize,'shuffle':True}
         if useCuda:
             loaderKwagrs.update({'num_workers': numWorker,'pin_memory': True})
@@ -26,13 +25,13 @@ class hdf5Loader():
         self.trainLoader = torch.utils.data.DataLoader(self.trainDS,**loaderKwagrs)
         self.valdnLoader = torch.utils.data.DataLoader(self.valdnDS,**loaderKwagrs)
         self.testLoader  = torch.utils.data.DataLoader(self.testDS, **loaderKwagrs)
-    def getLoader(self):
+    def getLoader(self) -> torch.utils.data.DataLoader:
         return self.trainLoader,self.valdnLoader,self.testLoader
     
     
 # %% Dataloader Wrapper for DDP
 class hdf5LoaderDDP():
-    def __init__(self,datPath,batchSize,useCuda,args,numWorker=0):
+    def __init__(self,datPath:str, batchSize:int, useCuda:bool, args:dict ,numWorker:int = 0):
         loaderKwagrs = {'batch_size':batchSize,'shuffle':False}
         if useCuda:
             loaderKwagrs.update({'num_workers': numWorker,'pin_memory': True})
@@ -60,17 +59,17 @@ class hdf5LoaderDDP():
         self.trainLoader = torch.utils.data.DataLoader(self.trainDS,sampler=trainSampler,**loaderKwagrs)
         self.valdnLoader = torch.utils.data.DataLoader(self.valdnDS,sampler=valdnSampler,**loaderKwagrs)
         self.testLoader  = torch.utils.data.DataLoader(self.testDS, sampler=testSampler, **loaderKwagrs)
-    def getLoader(self):
+    def getLoader(self) -> torch.utils.data.DataLoader:
         return self.trainLoader,self.valdnLoader,self.testLoader    
     
 
 # %% Dataset Objects
 class hdf5DataSet(torch.utils.data.Dataset):
-    def __init__(self,datPath,datKind):
+    def __init__(self,datPath:str, datKind:str):
         self.datPath = datPath
         self.datKind  = datKind
         self.SDE = LDSDE()
-    def __getitem__(self, idx):
+    def __getitem__(self, idx:int) -> Tuple[torch.Tensor]:
         with h5py.File(self.datPath,'r') as f:
             # step 1: get clean projection
             prjDS = f[self.datKind+'Prj']
@@ -82,7 +81,7 @@ class hdf5DataSet(torch.utils.data.Dataset):
             # step 3: sample training data
             x_t, alpha, t = self.SDE.sampleTrainingData(x_neg1, T)
             return x_neg1, x_t, alpha, t
-    def __len__(self):
+    def __len__(self) -> int:
         with h5py.File(self.datPath,'r') as f:
             tmpDS= f[self.datKind+'Prj']
             length = tmpDS.shape[0]

@@ -8,15 +8,16 @@ Low dose CT projection continuous SDE
 Formulated the continous transition between different doses
 into SDE model fit for diffusion network training
 Based partial on LDP [Wang 2014] 
-Fully derivation available as PDF
+Fully derivation available as PDF[https://github.com/hhuang91/low-dose-SDE/blob/main/Supplement.pdf]
 """
 import torch
-from _utils import tensorIn_TensorOut,numpyIn_TensorOut
 import numpy as np
+from _utils import tensorIn_TensorOut,numpyIn_TensorOut
+# tensorIn_TensorOut,numpyIn_TensorOut are decorator function to ensure input and output type
 
 #%%
 class LDSDE():
-    def __init__(self, I_0=1e6, I_min=5e4, N=101, device = 'cpu'):
+    def __init__(self, I_0:float = 1e6, I_min:float = 5e4, N:int = 101, device:str = 'cpu'):
                #(self, I_0=1e6, I_min=1e4, N=1001, device = 'cpu'):
         """Construct a Low Dose SDE.
     
@@ -31,22 +32,6 @@ class LDSDE():
         self.rev_dt = -self.dt
         self.I_0 = I_0
         self.N = N
-        """Quadratic Dose Scheduling"""
-        # self.alpha = lambda t: (1 - I_min/I_0)*(1-t)**2 + I_min/I_0
-        # self.A = lambda t: 2*(I_min/I_0 - 1)*(1-t)
-        # self.D = lambda t: self.A(t)/self.alpha(t)
-        # self.discrete_steps = torch.linspace(0,N-1, N).long().numpy()
-        # self.discrete_t = ( torch.linspace(0,N-1,N)/(N-1) )#.numpy()
-        # self.discrete_alpha = ( self.alpha(self.discrete_t) )#.numpy()
-        # self.discrete_D = self.D(self.discrete_t)#.numpy()
-        # """Exponential Dose Scheduling"""
-        # self.alpha = lambda t: torch.exp( torch.log(torch.tensor(I_min/I_0)) * t )
-        # self.A = lambda t: torch.log(torch.tensor(I_min/I_0))* self.alpha(t)
-        # self.D = torch.log(torch.tensor(I_min/I_0))#lambda t: self.A(t)/self.alpha(t)
-        # self.discrete_steps = torch.linspace(0,N-1, N).long().numpy()
-        # self.discrete_t = ( torch.linspace(0,N-1,N)/(N-1) ).numpy()
-        # self.discrete_alpha = ( self.alpha(self.discrete_t) ).numpy()
-        # self.discrete_D = ( torch.ones(self.discrete_steps.shape) * self.D ).numpy()
         """Linear Dose Scheduling"""
         self.alpha = lambda t: 1 + ( I_min/I_0 - 1 )*t
         self.A = I_min/I_0 - 1
@@ -95,7 +80,7 @@ class LDSDE():
     
     @tensorIn_TensorOut
     def noiseEst2Xneg1(self, x_t ,noiseEst, alpha, x_T_Norm):
-        """Notice that the input noise, noiseEst, already is negative of original noise (see getNoiseGT)"""
+        """Note that the input noise, noiseEst, already is negative of original noise (see getNoiseGT)"""
         x_neg1_est = torch.clamp(x_T_Norm,0,1)
         sigma_q_est = self.getSigmaQ(x_neg1_est)
         sigma = self.getSigma(sigma_q_est, alpha)
@@ -106,7 +91,6 @@ class LDSDE():
     @tensorIn_TensorOut
     def getG(self,sigma_q, D, alpha):
         g_t = ( torch.sqrt(alpha)*sigma_q + np.sqrt(2)*self.sigma_e ) * torch.sqrt(-D)
-        # g_t = torch.sqrt(sigma_q**2 + 2*self.sigma_e**2) * torch.sqrt(-D)
         return g_t
     
     @tensorIn_TensorOut
@@ -114,11 +98,9 @@ class LDSDE():
         F_xt = D * x_t
         return F_xt
     
-    """
-    note that noise is simply score*sigma
-    """
     @tensorIn_TensorOut
     def getNoiseGT(self,x_neg1,x_t,alpha):
+        """Note that noise is simply score*sigma"""
         sigma_q = self.getSigmaQ(x_neg1)
         sigma = self.getSigma(sigma_q, alpha)
         noise = -(x_t - alpha*x_neg1)/sigma

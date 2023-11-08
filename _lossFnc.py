@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 17 16:04:29 2023
+FBP loss function
+Using differentibale backprojector (https://github.com/matteo-ronchetti/torch-radon)
+to reconstruction image first
+then compute loss on image domain 
+(so graident will be propagated back to projection domain)
 
 @author: hhuang91
 """
@@ -8,15 +12,16 @@ Created on Thu Aug 17 16:04:29 2023
 #%%
 import torch
 from _projector import getRFP 
+from _structs import gStruct
 from _filterTorch import fbpFilterRaisedCosine2D_MB
 import torch.nn as nn
 #%% Directly compute loss on FBP-ed image
 class fbpMSE():
-    def __init__(self,g,recDim = 256,recVoxSize = 0.25):
+    def __init__(self,g:gStruct,recDim:int = 256,recVoxSize:float = 0.25):
         self.g = g
         self.L = nn.MSELoss()
         self.RFP = getRFP(g, recDim, recVoxSize)
-    def __call__(self, x, y):
+    def __call__(self, x:torch.Tensor, y:torch.Tensor) -> torch.Tensor:
         xF = torch.zeros_like(x)
         yF = torch.zeros_like(y)
         ## Input has dimension (batch, channel = 1, pixel, andgle)
@@ -31,6 +36,5 @@ class fbpMSE():
         loss = self.L(self.norm(uX),self.norm(uY))
         return loss
     def norm(self,x):
-        # x = x.clone() - x.min()
-        # x = x.clone() / x.max()
+        # deprecated, becuase normalization will mess up aboslute value of noise
         return x

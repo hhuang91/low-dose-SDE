@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug  1 14:40:10 2023
+FBP filter ported from matlab
 
 @author: hhuang91
 """

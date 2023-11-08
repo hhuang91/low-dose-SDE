@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug  1 15:54:50 2023
+Useful structure (similar to struct in matlab) classes
 
 @author: hhuang91
 """
 
 class gStruct(object):
+    """geometry structure class"""
     def __init__(self):
         self.PixSize = []
         self.XYdim = []

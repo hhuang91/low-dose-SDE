@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Aug 14 13:33:30 2023
+Pytorch version of FBP filter
+Allowing for multi-bacth filtering and autograd
 
 @author: hhuang91
 """

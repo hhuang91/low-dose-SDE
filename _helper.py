@@ -7,14 +7,25 @@ Use mouse wheel for scrolling through slices
 """
 
 import matplotlib.pyplot as plt
-import numpy 
+import torch
 
-    
-def sliceView(volume:numpy.ndarray):
+def sliceView(volume,vmin=None,vmax=None):
+    volume = volume.squeeze().detach().cpu().numpy()  if torch.is_tensor(volume) else volume.squeeze()
     fig, ax = plt.subplots()
     ax.volume = volume
     ax.index = volume.shape[0] // 2
-    ax.imshow(volume[ax.index],cmap = 'gray')
+    ax.imshow(volume[ax.index],cmap = 'gray',
+              vmin=volume.min() if vmin is None else vmin,
+              vmax=volume.max() if vmax is None else vmax)
+    fig.canvas.mpl_connect('scroll_event', on_scroll)
+    fig.canvas.mpl_connect('key_press_event', process_key)
+    
+def sliceViewColor(volume):
+    volume = volume.squeeze().detach().cpu().numpy()  if torch.is_tensor(volume) else volume.squeeze()
+    fig, ax = plt.subplots()
+    ax.volume = volume
+    ax.index = volume.shape[0] // 2
+    ax.imshow(volume[ax.index])
     fig.canvas.mpl_connect('scroll_event', on_scroll)
     fig.canvas.mpl_connect('key_press_event', process_key)
     
@@ -47,3 +58,15 @@ def next_slice(ax):
     ax.index = (ax.index + 1) % volume.shape[0]
     ax.images[0].set_array(volume[ax.index])
     ax.set_xlabel('slice %s' % ax.index)
+    
+def sliceCompare(vol1,vol2,vmin=None,vmax=None):
+    vol1 = torch.tensor(vol1) if not torch.is_tensor(vol1) else vol1
+    vol2 = torch.tensor(vol2) if not torch.is_tensor(vol2) else vol2
+    volCat = torch.cat([vol1,vol2],len(vol1.shape)-1)
+    sliceView(volCat,vmin,vmax)
+    
+def sliceCompareMany(vols):
+    for vol in vols:
+        vol = torch.tensor(vol) if not torch.is_tensor(vol) else vol
+    volCat = torch.cat(vols,len(vol.shape)-1)
+    sliceView(volCat)
